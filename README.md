@@ -16,3 +16,13 @@ The code contains a sample XSLT transformation, [retailer.xsl](https://github.co
 
 You can also test out Retailer by renaming the [identity.xsl](https://github.com/Conal-Tuohy/Retailer/blob/master/etc/identity.xsl) file to "retailer.xsl", and accessing the Retailer Servlet from your browser. The "identity.xsl" file simply copies the input document unchanged, so what you will see in your browser is the XML representation which Retailer made from your HTTP request and passed to the XSLT.
 
+To build Retailer, you will need Java and [Apache Ant](http://ant.apache.org/).  On Ubuntu Linux, you can install Ant like so:
+```
+sudo apt-get install ant
+```
+Then you can just run:
+```
+ant
+```
+The `retailer.war` file will be built in the `dist` folder, and can then be deployed to your Servlet container.
+
