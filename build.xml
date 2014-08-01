@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ====================================================================== 
+     5/07/2014 10:30:48 PM                                                        
+
+     Retailer    
+     An XML transforming web proxy for presenting a RESTful API as another API, by Conal Tuohy                                                                
+     ====================================================================== -->
+<project name="Retailer" default="war">
+
+	<property file="ant/build.properties"/>
+	<description>Retailer is an XML transforming web proxy.</description>
+
+	<path id="classpath">
+		<fileset dir="lib" includes="servlet-api-3.0.jar"/>
+	</path>
+
+	<target name="clean">
+		<echo>Cleaning the build and dist directories</echo>
+		<delete dir="build"/>
+		<delete dir="dist"/>
+	</target>
+
+	<target name="init" depends="clean">
+		<echo>Creating the required directories ...</echo>
+		<mkdir dir="dist"/>
+		<mkdir dir="build/WEB-INF/classes"/>		
+		<mkdir dir="build/WEB-INF/lib"/>
+	</target>
+
+	<target name="compile" depends="init">
+		<echo>Compiling Java source files ...</echo>
+		<javac srcdir="src" destdir="build/WEB-INF/classes" includeAntRuntime="false" debug="true" debuglevel="lines,vars,source">
+			<classpath>
+				<fileset dir="lib">
+					<include name="**/*.jar"/>
+				</fileset>
+			</classpath>
+		</javac>
+	</target>	
+	
+	<target name="copy" depends="compile">
+		<echo>Copying auxiliary files ...</echo>
+		<copy todir="build/WEB-INF">
+			<fileset dir="etc"/>			
+		</copy>		
+		<copy todir="build">
+			<fileset dir="web"/>
+		</copy>
+		<!--
+		<copy todir="build/WEB-INF/lib">
+			<fileset dir="lib"/>
+		</copy>
+		-->
+	</target>		
+
+	<target name="war" depends="copy">
+		<echo>Building the war file ...</echo>
+		<war destfile="dist/retailer.war" webxml="build/WEB-INF/web.xml">
+			<fileset dir="build"/>
+		</war>
+	</target>
+
+</project>

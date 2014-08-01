@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE web-app
+    PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
+    "http://java.sun.com/dtd/web-app_2_3.dtd">
+<web-app>
+	<display-name>Retailer</display-name>
+	<description>An XML transformation service</description>
+	<!-- Retailer passes any Context parameters to the XSLT -->
+	<context-param>
+		<param-name>trove-key</param-name>
+		<param-value>INSERT TROVE KEY HERE</param-value>
+		<description>The API key required by Trove</description>
+	</context-param>
+	<servlet>
+		<servlet-name>retailer</servlet-name>
+		<servlet-class>com.conaltuohy.retailer.RetailerServlet</servlet-class>
+		<!-- Retailer passes any Servlet initialization parameters to the XSLT -->
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>retailer</servlet-name>
+		<url-pattern>/*</url-pattern>
+	</servlet-mapping>
+</web-app>
