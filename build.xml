@@ -43,10 +43,10 @@
 		<copy todir="build/WEB-INF">
 			<fileset dir="etc"/>			
 		</copy>		
+		<!--
 		<copy todir="build">
 			<fileset dir="web"/>
 		</copy>
-		<!--
 		<copy todir="build/WEB-INF/lib">
 			<fileset dir="lib"/>
 		</copy>
