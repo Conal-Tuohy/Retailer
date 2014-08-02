@@ -1,0 +1,5 @@
+# files to not be committed to the repository
+
+/build/
+/dist/
+
