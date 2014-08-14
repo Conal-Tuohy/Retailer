@@ -12,7 +12,14 @@ When Retailer receives an HTTP request, it creates an XML representation of the 
 * performing content negotiation, etc.
 
 ## The sample XSLT
-The code contains a sample XSLT transformation, [retailer.xsl](https://github.com/Conal-Tuohy/Retailer/blob/master/etc/retailer.xsl), which presents the API of the National Library of Australia's newspaper archive as an OAI-PMH provider. To run the sample XSLT application, you will need to apply for a [Trove API Key](http://help.nla.gov.au/trove/building-with-trove/api) from the National Library of Australia, and configure your Servlet container to provide the key to the Retailer Servlet as an "init-parameter" named "key". 
+The code contains a sample XSLT transformation, [retailer.xsl](https://github.com/Conal-Tuohy/Retailer/blob/master/etc/retailer.xsl), which presents the API of the National Library of Australia's newspaper archive as an OAI-PMH provider. To run the sample XSLT application, you will need to apply for a [Trove API Key](http://help.nla.gov.au/trove/building-with-trove/api) from the National Library of Australia, and configure your Servlet container to provide the key to the Retailer Servlet as an "init-parameter" named "key". In Tomcat, you can do this by creating a `retailer.xml` file in `/var/lib/tomcat7/conf/Catalina/localhost`:
+```
+<Context path="/retailer" 
+	docBase="/path/to/retailer.war"
+	antiResourceLocking="false">
+  <Parameter name="trove-key" value="your-key-here" override="false"/>
+</Context>
+```
 
 The OAI-PMH provider implemented in the XSLT includes a feature which allows for a harvester to harvest the result of a search, by specifying a setSpec of "search:foo" to harvest all newspaper articles containing the word "foo". It's not recommended to attempt to harvest without using a setSpec, because the Trove corpus is very large and the service is slow; a complete harvest would likely take months to complete, if it did at all. 
 
