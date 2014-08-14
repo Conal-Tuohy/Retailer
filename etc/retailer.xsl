@@ -68,17 +68,21 @@ xmlns:r="http://conaltuohy.com/ns/retailer/">
 			<xsl:when test="$verb = 'ListRecords'">
 				<!-- the response consists a list of newspaper articles -->
 				<ListRecords>
-					<xsl:for-each select="zone/records/article">
+					<!-- list all records which have identifiers (unidentified records are part way through digitisation process -->
+					<xsl:for-each select="zone/records/article[identifier]">
 						<record>
 							<xsl:apply-templates select="." mode="record-header"/>
 							<metadata>
 								<!-- Render every article in the requested metadataFormat -->
 								<xsl:choose>
 									<xsl:when test="$metadataPrefix = 'trove' ">
-										<xsl:apply-templates mode="trove-namespace-qualify" select="."/>
+										<xsl:apply-templates mode="trove-metadata-format" select="."/>
+									</xsl:when>
+									<xsl:when test="$metadataPrefix = 'html' ">
+										<xsl:apply-templates mode="html-metadata-format" select="."/>
 									</xsl:when>
 									<xsl:otherwise>
-										<xsl:apply-templates mode="oai_dc" select="."/>
+										<xsl:apply-templates mode="oai_dc-metadata-format" select="."/>
 									</xsl:otherwise>
 								</xsl:choose>
 							</metadata>
@@ -146,7 +150,7 @@ xmlns:r="http://conaltuohy.com/ns/retailer/">
 		</xsl:choose>
 	</xsl:template>
 	
-	<xsl:template match="article" mode="oai_dc">
+	<xsl:template match="article" mode="oai_dc-metadata-format">
 		<oai_dc:dc 
 			xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" 
 			xmlns:dc="http://purl.org/dc/elements/1.1/" 
@@ -159,9 +163,27 @@ xmlns:r="http://conaltuohy.com/ns/retailer/">
        		<xsl:if test=" illustrated = 'Y' "><dc:type>image</dc:type></xsl:if>
        		<dc:source><xsl:value-of select="title"/></dc:source>
        		<dc:date><xsl:value-of select="date"/></dc:date>
-     	</oai_dc:dc>
+       	</oai_dc:dc>
 	</xsl:template>
 	
+	<xsl:template match="article" mode="html-metadata-format">
+		<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+      			xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      			xsi:schemaLocation="http://www.w3.org/1999/xhtml http://www.w3.org/2002/08/xhtml/xhtml1-strict.xsd">
+      			<head profile="http://dublincore.org/documents/2008/08/04/dc-html/">
+      				<title><xsl:value-of select="heading"/></title>
+      				<link rel="Alternate" href="{trovePageUrl}"/>
+      				<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"/>
+      				<meta name="DC.source" content="{title}"/>
+      				<meta name="DC.date" content="{date}"/>
+      			</head>
+      			<body>
+      				<xsl:call-template name="unquote-html">
+      					<xsl:with-param name="text" select="articleText"/>
+      				</xsl:call-template>
+      			</body>
+       	</html>
+	</xsl:template>	
 
 	<!-- parse the OAI-PMH request, check for syntax errors, generate response content and pass it for transformation -->
 	
@@ -287,7 +309,7 @@ xmlns:r="http://conaltuohy.com/ns/retailer/">
 		<xsl:variable name="unsupported-metadata-prefix" select="
 			r:parameter
 				[@name='metadataPrefix']
-				[not( .='oai_dc' or .='trove' )]"
+				[not( .='oai_dc' or .='trove' or .='html')]"
 		/>
 		<xsl:for-each select="$unsupported-metadata-prefix">
 			<error code="cannotDisseminateFormat">Unsupported metadata prefix '<xsl:value-of select="."/>'</error>
@@ -399,6 +421,11 @@ xmlns:r="http://conaltuohy.com/ns/retailer/">
 				<metadataNamespace>http://www.openarchives.org/OAI/2.0/oai_dc/</metadataNamespace>
 			</metadataFormat>
 			<metadataFormat>
+				<metadataPrefix>html</metadataPrefix>
+				<schema>http://www.w3.org/2002/08/xhtml/xhtml1-strict.xsd</schema>
+				<metadataNamespace>http://www.w3.org/1999/xhtml</metadataNamespace>
+			</metadataFormat>
+			<metadataFormat>
 				<metadataPrefix>trove</metadataPrefix>
 				<schema>trove.xsd</schema><!-- TODO -->
 				<metadataNamespace>http://api.trove.nla.gov.au/</metadataNamespace>
@@ -505,21 +532,21 @@ xmlns:r="http://conaltuohy.com/ns/retailer/">
 	</xsl:template>
 
 	<!-- The OAI-PMH spec says metadata schemas must use XML namespaces. -->
-	<xsl:template match="article" mode="trove-namespace-qualify">
+	<xsl:template match="article" mode="trove-metadata-format">
 		<article xmlns="http://api.trove.nla.gov.au/" >
 			<xsl:copy-of select="@*"/>
-			<xsl:apply-templates mode="trove-namespace-qualify"/>
+			<xsl:apply-templates mode="trove-metadata-format"/>
 		</article>
 	</xsl:template>
 	
-	<xsl:template match="*" mode="trove-namespace-qualify">
+	<xsl:template match="*" mode="trove-metadata-format">
 		<xsl:element name="{local-name(.)}" xmlns="http://api.trove.nla.gov.au/" >
 			<xsl:copy-of select="@*"/>
-			<xsl:apply-templates mode="trove-namespace-qualify"/>
+			<xsl:apply-templates mode="trove-metadata-format"/>
 		</xsl:element>
 	</xsl:template>
 	
-	<xsl:template match="articleText" mode="trove-namespace-qualify">
+	<xsl:template match="articleText" mode="trove-metadata-format">
 		<xsl:element name="{local-name(.)}" xmlns="http://api.trove.nla.gov.au/">
 			<xsl:copy-of select="@*"/>
 			<div xmlns="http://www.w3.org/1999/xhtml">
@@ -530,57 +557,51 @@ xmlns:r="http://conaltuohy.com/ns/retailer/">
 	
 	<xsl:template name="unquote-html">
 		<xsl:param name="text" select="."/>	
-		<!-- fails on &amp;nbsp; -->
-		<!--<xsl:value-of select="$text" disable-output-escaping="yes"/>-->
-		<xsl:variable name="text-without-nbsp">
-			<xsl:call-template name="unquote-entities">
+		<xsl:variable name="safe-text">
+			<xsl:call-template name="quote-unquoted-ampersands">
 				<xsl:with-param name="text" select="$text"/>
 			</xsl:call-template>
 		</xsl:variable>
-		<xsl:value-of select="$text-without-nbsp" disable-output-escaping="yes"/>
+		<xsl:value-of select="$safe-text" disable-output-escaping="yes"/>
 	</xsl:template>
 	
-	<xsl:template name="unquote-html-memory-hungry"><!--memory-hungry-->
-		<xsl:param name="text" select="."/>
-		<xsl:value-of select="substring-before($text, '&lt;')"/>
-		<xsl:variable name="markup" select="substring-after($text, '&lt;')"/>
+	<xsl:template name="quote-unquoted-ampersands">
+		<xsl:param name="text" />
 		<xsl:choose>
-			<xsl:when test="$markup">
-				<xsl:variable name="element-name" select="substring-before($markup, '&gt;')"/>
-				<xsl:variable name="closing-tag" select="concat('&lt;/', $element-name, '&gt;')"/>
-				<xsl:element name="{$element-name}" xmlns="http://www.w3.org/1999/xhtml">
-					<xsl:call-template name="unquote-html">
-						<xsl:with-param name="text" select="substring-before(substring-after($markup, '&gt;'), $closing-tag)"/>
-					</xsl:call-template>
-				</xsl:element>
-				<xsl:call-template name="unquote-html">
-					<xsl:with-param name="text" select="substring-after($markup, $closing-tag)"/>
-				</xsl:call-template>
+			<xsl:when test="contains($text, '&amp;')">
+				<xsl:variable name="prefix" select="substring-before($text, '&amp;')"/>
+				<xsl:variable name="suffix" select="substring($text, string-length($prefix) + 2)"/>
+				<xsl:value-of select="$prefix"/>
+				<xsl:choose>
+					<xsl:when test="starts-with($suffix, 'nbsp;')">
+						<!-- the ampersand prefixes the built-in html character entity name "nbsp" -->
+						<xsl:text> </xsl:text>
+						<xsl:call-template name="quote-unquoted-ampersands">
+							<xsl:with-param name="text" select="substring-after($suffix, 'nbsp;')"/>
+						</xsl:call-template>
+					</xsl:when>
+					<xsl:when test="starts-with($suffix, 'lt;')">
+						<!-- the ampersand prefixes the built-in xml character entity name "lt" -->
+						<xsl:text>&amp;lt;</xsl:text>
+						<xsl:call-template name="quote-unquoted-ampersands">
+							<xsl:with-param name="text" select="substring-after($suffix, 'lt;')"/>
+						</xsl:call-template>
+					</xsl:when>
+					<xsl:otherwise>
+						<!-- ampersand is a loner and needs to have the "amp" character entity name appended -->
+						<xsl:text>&amp;amp;</xsl:text>
+						<xsl:call-template name="quote-unquoted-ampersands">
+							<xsl:with-param name="text" select="$suffix"/>
+						</xsl:call-template>
+					</xsl:otherwise>
+				</xsl:choose>
 			</xsl:when>
 			<xsl:otherwise>
-				<xsl:call-template name="unquote-entities">
-					<xsl:with-param name="text" select="$text"/>
-				</xsl:call-template>
+				<xsl:value-of select="$text"/>
 			</xsl:otherwise>
 		</xsl:choose>
-	</xsl:template>
+	</xsl:template>	
 	
-	<xsl:template name="unquote-entities">
-		<xsl:param name="text" />
-		<xsl:call-template name="find-and-replace">
-			<xsl:with-param name="find" select=" '&amp;nbsp;' "/>
-			<xsl:with-param name="replace" select=" ' ' "/>
-			<xsl:with-param name="text" select="$text"/>
-		</xsl:call-template>
-	</xsl:template>
-	<xsl:template name="encode-for-uri-test">
-		<xsl:param name="text" />
-		<xsl:call-template name="find-and-replace">
-			<xsl:with-param name="find" select=" '=' "/>
-			<xsl:with-param name="replace" select=" '%3D' "/>
-			<xsl:with-param name="text" select="$text"/>
-		</xsl:call-template>
-	</xsl:template>
 	<xsl:template name="encode-for-uri">
 		<xsl:param name="text" />
 		<xsl:call-template name="find-and-replace">
