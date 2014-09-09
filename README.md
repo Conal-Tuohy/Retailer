@@ -53,7 +53,11 @@ This will launch the Papers Past OAI-PMH provider at the location `http://localh
 The Papers Past provider supports three metadata schemas: `oai_dc`, `digitalnz` (a straightforward representation of the DigitalNZ API's native format) and `html` (likely to be the most useful).
 
 ### Identity
-The `identity.xsl` app is simply an "identity" stylesheet; a stylesheet which echoes whatever input it receives. In Tomcat, you can install it by creating an `identity.xml` file in `/var/lib/tomcat7/conf/Catalina/localhost`:
+The `identity.xsl` app is simply an "identity" stylesheet; a stylesheet which echoes whatever input it receives. 
+
+You can use it to test Retailer, and to help develop your own XSLT web apps. As a stub, it could be the starting point for a functional stylesheet. In your XSLT, you can use the XPath `document` function to read data from other sources, and transform it.
+
+In Tomcat, you can install it by creating an `identity.xml` file in `/var/lib/tomcat7/conf/Catalina/localhost`:
 ```xml
 <Context path="/identity" 
 	docBase="/path/to/retailer.war"
@@ -72,14 +76,11 @@ To harvest, you will need an OAI-PMH harvester application such as [jOAI](http:/
 
 Parameter Name      | Value
 --------------------|--------------------------------
-Repository base URL | http://localhost:8080/retailer/
-SetSpec             | search:ned kelly
-Metadata format     | html
+Repository base URL | `http://localhost:8080/trove/` or `http://localhost:8080/papers-past/`
+SetSpec             | `search:ned kelly`
+Metadata format     | `html`
 
 For details, see the blog post [How to download bulk newspaper articles from Trove](http://conaltuohy.com/blog/how-to-download-bulk-newspaper-articles-from-trove/)
-
-## Write your own XSLT
-You can also test out Retailer by renaming the [identity.xsl](https://github.com/Conal-Tuohy/Retailer/blob/master/etc/identity.xsl) file to "retailer.xsl", and accessing the Retailer Servlet from your browser. The "identity.xsl" file simply copies the input document unchanged, so what you will see in your browser is the XML representation which Retailer made from your HTTP request and passed to the XSLT. Modify this XSLT to meet your own needs. You can use the XPath `document` function to read data from other locations.
 
 ## How to build the program
 To build Retailer, you will need Java and [Apache Ant](http://ant.apache.org/).  On Ubuntu Linux, you can install Ant like so:
