@@ -32,6 +32,8 @@ Repository base URL | http://localhost:8080/retailer/
 SetSpec             | search:ned kelly
 Metadata format     | html
 
+For details, see the blog post [How to download bulk newspaper articles from Trove](http://conaltuohy.com/blog/how-to-download-bulk-newspaper-articles-from-trove/)
+
 ## Write your own XSLT
 You can also test out Retailer by renaming the [identity.xsl](https://github.com/Conal-Tuohy/Retailer/blob/master/etc/identity.xsl) file to "retailer.xsl", and accessing the Retailer Servlet from your browser. The "identity.xsl" file simply copies the input document unchanged, so what you will see in your browser is the XML representation which Retailer made from your HTTP request and passed to the XSLT. Modify this XSLT to meet your own needs. You can use the XPath `document` function to read data from other locations.
 
