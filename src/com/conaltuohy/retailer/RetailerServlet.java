@@ -18,6 +18,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
 import javax.xml.transform.Templates;
@@ -72,13 +73,11 @@ public class RetailerServlet extends HttpServlet {
 		// Because the XSLT can only use the GET method (via XPath document() function),
 		// it can't really support PUT or DELETE, which are supposed to make persistent changes.
 		// Only the GET and POST methods are supported.
-		getServletContext().log("service");
 		if ( ! ( "GET".equals(req.getMethod()) || "POST".equals(req.getMethod())) ) {
 			throw new ServletException("Method not supported");
 		}
 		
 		// Create a stream to send response XML to the HTTP client
-		resp.setContentType("application/xml");	
 		OutputStream os = resp.getOutputStream();
 		Result result = new StreamResult(os);
 		
@@ -89,7 +88,13 @@ public class RetailerServlet extends HttpServlet {
 		// request timing out, while still enabling the harvester to continue the list sequence.
 		
 		// load and compile an XSLT Transform
-		InputStream is = getServletContext().getResourceAsStream("/WEB-INF/retailer.xsl");
+		// The XSLT to use is specified by an initialization parameter
+		String xslt = getServletContext().getInitParameter("xslt");
+		if (xslt == null) {
+			xslt = "identity.xsl";
+		};
+		xslt = "/WEB-INF/" + xslt;
+		InputStream is = getServletContext().getResourceAsStream(xslt);
 		InputSource inputSource = new InputSource(is);
 		Source transformSource = new SAXSource(inputSource);
 		// compile XSLT transform
@@ -99,6 +104,10 @@ public class RetailerServlet extends HttpServlet {
 			Templates xsltTemplates = transformerFactory.newTemplates(transformSource);
 			transformerHandler = transformerFactory.newTransformerHandler(xsltTemplates);
 			transformer = transformerHandler.getTransformer();
+			resp.setContentType(
+				transformer.getOutputProperties()
+					.getProperty(OutputKeys.MEDIA_TYPE)
+			);	
 		} catch (TransformerConfigurationException xsltNotLoaded) {
 			fail(xsltNotLoaded, "Error in XSLT transform");
 		};
@@ -121,14 +130,25 @@ public class RetailerServlet extends HttpServlet {
 			// the current date and time is a useful value for the XSLT to know
 			addElement(retailerElement, "value", "date", getCurrentDate());
 			
-			// the request URI (without any parameters)
-			addElement(retailerElement, "value", "uri", 
-					req.getScheme() + "://" + req.getServerName() + ":" + Integer.toString(req.getServerPort()) + "/"
-			);
+			// miscellaneous properties of the HTTP request
+			addElement(retailerElement, "value", "method", req.getMethod());
+			addElement(retailerElement, "value", "request-url", req.getRequestURL().toString());
+			addElement(retailerElement, "value", "request-uri", req.getRequestURI());
+			addElement(retailerElement, "value", "query-string", req.getQueryString());
+			addElement(retailerElement, "value", "context-path", req.getContextPath());
+			addElement(retailerElement, "value", "servlet-path", req.getServletPath());
+			addElement(retailerElement, "value", "path-info", req.getPathInfo());
+			addElement(retailerElement, "value", "scheme", req.getScheme());
+			addElement(retailerElement, "value", "server-name", req.getServerName());
+			addElement(retailerElement, "value", "server-port", Integer.toString(req.getServerPort()));
+			addElement(retailerElement, "value", "remote-addr", req.getRemoteAddr());
 			
 			// the form parameters, either from URI parameters or POST message body
 			for (String name : Collections.list(req.getParameterNames())) {
-				addElement(retailerElement, "parameter", name, req.getParameter(name));
+				String[] values = req.getParameterValues(name);
+				for (String value: values) {
+					addElement(retailerElement, "parameter", name, value);
+				}
 			}
 			
 			// the HTTP request headers

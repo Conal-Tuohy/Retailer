@@ -196,7 +196,7 @@ xmlns:r="http://conaltuohy.com/ns/retailer/">
 	<xsl:template match="/r:request">
 		<xsl:choose>
 			<xsl:when test="not($key)">
-				<error>You must provide your Trove API key as a servlet init-param named "key"</error>
+				<error>You must provide your Trove API key as a servlet init-param named "trove-key"</error>
 			</xsl:when>
 			<xsl:otherwise>
 				 <OAI-PMH 
@@ -567,37 +567,42 @@ xmlns:r="http://conaltuohy.com/ns/retailer/">
 	
 	<xsl:template name="quote-unquoted-ampersands">
 		<xsl:param name="text" />
+		<xsl:param name="start-position" select="1"/>
 		<xsl:choose>
-			<xsl:when test="contains($text, '&amp;')">
-				<xsl:variable name="prefix" select="substring-before($text, '&amp;')"/>
-				<xsl:variable name="suffix" select="substring($text, string-length($prefix) + 2)"/>
+			<xsl:when test="contains(substring($text, $start-position), '&amp;')">
+				<xsl:variable name="prefix" select="substring-before(substring($text, $start-position), '&amp;')"/>
+				<xsl:variable name="prefix-length" select="string-length($prefix)"/>
+				<xsl:variable name="suffix-position" select="$start-position + $prefix-length + 1"/>
 				<xsl:value-of select="$prefix"/>
 				<xsl:choose>
-					<xsl:when test="starts-with($suffix, 'nbsp;')">
+					<xsl:when test="substring($text, $suffix-position, string-length('nbsp;')) = 'nbsp;' ">
 						<!-- the ampersand prefixes the built-in html character entity name "nbsp" -->
 						<xsl:text> </xsl:text>
 						<xsl:call-template name="quote-unquoted-ampersands">
-							<xsl:with-param name="text" select="substring-after($suffix, 'nbsp;')"/>
+							<xsl:with-param name="text" select="$text"/>
+							<xsl:with-param name="start-position" select="$suffix-position + string-length('nbsp;') "/>
 						</xsl:call-template>
 					</xsl:when>
-					<xsl:when test="starts-with($suffix, 'lt;')">
+					<xsl:when test="substring($text, $suffix-position, string-length('lt;')) = 'lt;' ">
 						<!-- the ampersand prefixes the built-in xml character entity name "lt" -->
 						<xsl:text>&amp;lt;</xsl:text>
 						<xsl:call-template name="quote-unquoted-ampersands">
-							<xsl:with-param name="text" select="substring-after($suffix, 'lt;')"/>
+							<xsl:with-param name="text" select="$text"/>
+							<xsl:with-param name="start-position" select="$suffix-position + string-length('lt;') "/>
 						</xsl:call-template>
 					</xsl:when>
 					<xsl:otherwise>
 						<!-- ampersand is a loner and needs to have the "amp" character entity name appended -->
 						<xsl:text>&amp;amp;</xsl:text>
 						<xsl:call-template name="quote-unquoted-ampersands">
-							<xsl:with-param name="text" select="$suffix"/>
+							<xsl:with-param name="text" select="$text"/>
+							<xsl:with-param name="start-position" select="$suffix-position"/>
 						</xsl:call-template>
 					</xsl:otherwise>
 				</xsl:choose>
 			</xsl:when>
 			<xsl:otherwise>
-				<xsl:value-of select="$text"/>
+				<xsl:value-of select="substring($text, $start-position)"/>
 			</xsl:otherwise>
 		</xsl:choose>
 	</xsl:template>	
