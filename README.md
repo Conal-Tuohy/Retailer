@@ -80,7 +80,7 @@ Repository base URL | `http://localhost:8080/trove/` or `http://localhost:8080/p
 SetSpec             | `search:ned kelly`
 Metadata format     | `html`
 
-For details, see the blog post [How to download bulk newspaper articles from Trove](http://conaltuohy.com/blog/how-to-download-bulk-newspaper-articles-from-trove/)
+For details, see the blog posts [How to download bulk newspaper articles from Trove](http://conaltuohy.com/blog/how-to-download-bulk-newspaper-articles-from-trove/) and [How to download bulk newspaper articles from Papers Past](http://conaltuohy.com/blog/how-to-download-bulk-newspaper-articles-from-papers-past/)
 
 ## How to build the program
 To build Retailer, you will need Java and [Apache Ant](http://ant.apache.org/).  On Ubuntu Linux, you can install Ant like so:
