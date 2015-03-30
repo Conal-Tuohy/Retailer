@@ -92,6 +92,11 @@ public class RetailerServlet extends HttpServlet {
 		// The XSLT to use is specified by an initialization parameter
 		String xslt = getServletContext().getInitParameter("xslt");
 		if (xslt == null) {
+			// ... or failing that by an environment variable
+			xslt = System.getenv("retailer-xslt");
+		};
+		// or failing that it is "identity.xsl"
+		if (xslt == null) {
 			xslt = "identity.xsl";
 		};
 		xslt = "/WEB-INF/" + xslt;
