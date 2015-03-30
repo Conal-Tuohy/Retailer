@@ -9,6 +9,7 @@ import java.text.SimpleDateFormat;
 import java.util.Collections;
 import java.util.Date;
 import java.util.TimeZone;
+import java.util.Map;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -166,7 +167,12 @@ public class RetailerServlet extends HttpServlet {
 			// e.g. parameters listed in a Tomcat 'context.xml' file
 			for (String name : Collections.list(getServletContext().getInitParameterNames())) {
 				addElement(retailerElement, "context-parameter", name, getServletContext().getInitParameter(name));
-			}			
+			}
+			
+			// The web application's environment variables, 
+			for (Map.Entry<String, String> entry: System.getenv().entrySet()) {
+				addElement(retailerElement, "environment-variable", entry.getKey(), entry.getValue());
+			}				
 			
 			// Transform the XML document which describes the HTTP request, using the XSLT transform,
 			// sending the response to the HTTP client
