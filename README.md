@@ -6,6 +6,8 @@ Essentially it is a kind of XML transforming web proxy, able to present a RESTfu
 
 The application class is [com.conaltuohy.retailer.RetailerServlet](https://github.com/Conal-Tuohy/Retailer/blob/master/src/com/conaltuohy/retailer/RetailerServlet.java)
 
+Documentation is still a bit sparse, but read on to learn how to install it, or read the [detailed instructions specifically for MacOS X](https://oz-penguin.livejournal.com/8062.html) on Steve Leahy's blog.
+
 ## How does it work?
 When Retailer receives an HTTP request, it creates an XML representation of the the request and passes it to an XSLT. The result of the XSLT is passed back to the client. During the process of each request, the XSLT may make its own HTTP requests for other resources, and process the results. In this way, an XSLT can statelessly represent an underlying API as a different API, for instance:
 
