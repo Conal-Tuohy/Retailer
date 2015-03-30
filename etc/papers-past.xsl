@@ -8,15 +8,16 @@ xmlns:r="http://conaltuohy.com/ns/retailer/">
 	<xsl:key name="parameter" match="/r:request/r:parameter" use="@name"/>
 	<xsl:key name="header" match="/r:request/r:header" use="@name"/>
 	<xsl:key name="value" match="/r:request/r:value" use="@name"/>
-
-	<xsl:variable name="key" select="/r:request/r:context-parameter[@name='digitalnz-key']"/>
+	<xsl:variable name="key" select="
+		(/r:request/r:context-parameter | /r:request/r:context-parameter)[@name='digitalnz-key'][1]
+	"/>
 	<xsl:variable name="page-size">100</xsl:variable><!-- Digital NZ's maximum page size=100 -->
 	<xsl:variable name="base-uri" select="concat(
 		'http://api.digitalnz.org/v3/records.xml',
 		'?and[content_partner]=National+Library+of+New+Zealand',
 		'&amp;and[primary_collection]=Papers+Past'
 	)"/>
-	<xsl:variable name="oai-pmh-base-uri" select="key('value', 'uri')"/>
+	<xsl:variable name="oai-pmh-base-uri" select="key('value', 'request-url')"/>
 	<xsl:variable name="resumption-token" select="key('parameter', 'resumptionToken')"/>
 	<xsl:variable name="date" select="/r:request/r:value[@name='date']"/>
 	<xsl:variable name="verb" select="key('parameter', 'verb')"/>

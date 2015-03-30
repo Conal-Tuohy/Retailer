@@ -4,10 +4,12 @@ xmlns="http://www.openarchives.org/OAI/2.0/"
 xmlns:r="http://conaltuohy.com/ns/retailer/">
 
 	<xsl:output method="xml" indent="true"/>
-	<xsl:variable name="key" select="/r:request/r:context-parameter[@name='trove-key']"/>
+	<xsl:variable name="key" select="
+		(/r:request/r:context-parameter | /r:request/r:context-parameter)[@name='trove-key'][1]
+	"/>
 	<xsl:variable name="page-size">100</xsl:variable><!-- max=100 -->
 	<xsl:variable name="base-uri">http://api.trove.nla.gov.au</xsl:variable>
-	<xsl:variable name="oai-pmh-base-uri" select="key('value', 'uri')"/>
+	<xsl:variable name="oai-pmh-base-uri" select="key('value', 'request-url')"/>
 	<xsl:variable name="date" select="/r:request/r:value[@name='date']"/>
 	<xsl:key name="parameter" match="/r:request/r:parameter" use="@name"/>
 	<xsl:key name="header" match="/r:request/r:header" use="@name"/>
@@ -196,7 +198,7 @@ xmlns:r="http://conaltuohy.com/ns/retailer/">
 	<xsl:template match="/r:request">
 		<xsl:choose>
 			<xsl:when test="not($key)">
-				<error>You must provide your Trove API key as a servlet init-param named "trove-key"</error>
+				<error>You must provide your Trove API key as an environment variable or servlet init-param named "trove-key"</error>
 			</xsl:when>
 			<xsl:otherwise>
 				 <OAI-PMH 
