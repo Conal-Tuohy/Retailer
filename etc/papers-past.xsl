@@ -9,7 +9,7 @@ xmlns:r="http://conaltuohy.com/ns/retailer/">
 	<xsl:key name="header" match="/r:request/r:header" use="@name"/>
 	<xsl:key name="value" match="/r:request/r:value" use="@name"/>
 	<xsl:variable name="key" select="
-		(/r:request/r:context-parameter | /r:request/r:context-parameter)[@name='digitalnz-key'][1]
+		(/r:request/r:context-parameter | /r:request/r:environment-variable)[@name='digitalnz-key'][1]
 	"/>
 	<xsl:variable name="page-size">100</xsl:variable><!-- Digital NZ's maximum page size=100 -->
 	<xsl:variable name="base-uri" select="concat(

@@ -5,7 +5,7 @@ xmlns:r="http://conaltuohy.com/ns/retailer/">
 
 	<xsl:output method="xml" indent="true"/>
 	<xsl:variable name="key" select="
-		(/r:request/r:context-parameter | /r:request/r:context-parameter)[@name='trove-key'][1]
+		(/r:request/r:context-parameter | /r:request/r:environment-variable)[@name='trove-key'][1]
 	"/>
 	<xsl:variable name="page-size">100</xsl:variable><!-- max=100 -->
 	<xsl:variable name="base-uri">http://api.trove.nla.gov.au</xsl:variable>
