@@ -6,11 +6,13 @@
 	<display-name>Retailer</display-name>
 	<description>An XML transformation service</description>
 	<!-- Retailer passes any Context parameters to the XSLT -->
+	<!--
 	<context-param>
 		<param-name>trove-key</param-name>
 		<param-value>INSERT TROVE KEY HERE</param-value>
 		<description>The API key required by Trove</description>
 	</context-param>
+	-->
 	<servlet>
 		<servlet-name>retailer</servlet-name>
 		<servlet-class>com.conaltuohy.retailer.RetailerServlet</servlet-class>
