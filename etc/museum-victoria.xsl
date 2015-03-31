@@ -4,18 +4,9 @@ xmlns="http://www.openarchives.org/OAI/2.0/"
 xmlns:r="http://conaltuohy.com/ns/retailer/">
 
 	<xsl:output method="xml" indent="true"/>
-	<xsl:variable name="key" select="
-		(/r:request/r:context-parameter | /r:request/r:environment-variable)[@name='trove-key'][1]
-	"/>
-	<xsl:variable name="page-size">
-		<xsl:call-template name="get-config-parameter">
-			<xsl:with-param name="name">page-size</xsl:with-param>
-			<xsl:with-param name="default">100</xsl:with-param><!-- max=100 -->
-		</xsl:call-template>
-	</xsl:variable>
-
+	<xsl:variable name="page-size">100</xsl:variable><!-- max=100 -->
 	<xsl:variable name="base-uri">http://api.trove.nla.gov.au</xsl:variable>
-	<xsl:variable name="oai-pmh-base-uri" select="key('value', 'request-url')"/>
+	<xsl:variable name="oai-pmh-base-uri" select="key('value', 'uri')"/>
 	<xsl:variable name="date" select="/r:request/r:value[@name='date']"/>
 	<xsl:key name="parameter" match="/r:request/r:parameter" use="@name"/>
 	<xsl:key name="header" match="/r:request/r:header" use="@name"/>
@@ -23,37 +14,7 @@ xmlns:r="http://conaltuohy.com/ns/retailer/">
 	<xsl:variable name="verb" select="key('parameter', 'verb')"/>
 	<xsl:variable name="authentication" select="concat('key=', $key)"/>
 	<xsl:variable name="parameters" select="/r:request/r:parameter"/>
-	<xsl:variable name="max-pages">
-		<xsl:call-template name="get-config-parameter">
-			<xsl:with-param name="name">max-pages</xsl:with-param>
-		</xsl:call-template>
-	</xsl:variable>
-	
-	<!-- 
-		Get a configuration parameter with a particular name.
-		Either a context-parameter of the Servlet, or failing that an environment variable, or failing that, the default specified.
-	-->
-	<xsl:template name="get-config-parameter">
-		<xsl:param name="name"/>
-		<xsl:param name="default" select="''"/>
-		<xsl:variable name="context-parameter" select="/r:request/r:context-parameter[@name=$name]"/>
-		<xsl:choose>
-			<xsl:when test="$context-parameter">
-				<xsl:value-of select="$context-parameter"/>
-			</xsl:when>
-			<xsl:otherwise>
-				<xsl:variable name="environment-variable" select="/r:request/r:environment-variable[@name=$name]"/>
-				<xsl:choose>
-					<xsl:when test="$environment-variable">
-						<xsl:value-of select="$environment-variable"/>
-					</xsl:when>
-					<xsl:otherwise>
-						<xsl:value-of select="$default"/>
-					</xsl:otherwise>
-				</xsl:choose>
-			</xsl:otherwise>
-		</xsl:choose>
-	</xsl:template>
+
 	
 	<xsl:template mode="record-header" match="article">
 		<header>
@@ -78,10 +39,7 @@ xmlns:r="http://conaltuohy.com/ns/retailer/">
 	
 	<xsl:template name="resumption-token">
 		<xsl:for-each select="zone/records[@next]">
-			<!-- don't generate a resumptionToken if that would exceed the configured maximum -->
-			<resumptionToken completeListSize="{@total}" cursor="{@s}"><xsl:if test="($max-pages = '') or (@s &lt; $page-size * $max-pages)">
-				<xsl:value-of select="concat($metadataPrefix, '-', normalize-space(@next))"/>
-			</xsl:if></resumptionToken>
+			<resumptionToken completeListSize="{@total}" cursor="{@s}"><xsl:value-of select="concat($metadataPrefix, '-', normalize-space(@next))"/></resumptionToken>
 		</xsl:for-each>
 	</xsl:template>
 	
@@ -228,49 +186,36 @@ xmlns:r="http://conaltuohy.com/ns/retailer/">
 
 	<!-- parse the OAI-PMH request, check for syntax errors, generate response content and pass it for transformation -->
 	
-	<!-- <HTML></HTML> accompanied by an HTTP Refresh header appears to be a Trove load-shedding mechanism-->
-	<xsl:template match="/HTML">
-		<!-- Terminate the XSLT, allowing the Servlet to retry -->
-		<xsl:message terminate="yes">Received fob-off from Trove</xsl:message>
-	</xsl:template>
-	
 	<xsl:template match="/r:request">
-		<xsl:choose>
-			<xsl:when test="not($key)">
-				<error>You must provide your Trove API key as an environment variable or servlet init-param named "trove-key"</error>
-			</xsl:when>
-			<xsl:otherwise>
-				 <OAI-PMH 
-						xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-						xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd">
-					<responseDate><xsl:value-of select="$date"/></responseDate>
-					<!-- check for syntax errors in query received from harvester -->
-					<xsl:variable name="errors">
-						<xsl:apply-templates mode="validate-request" select="."/>
-					</xsl:variable>
-						<xsl:choose>
-							<xsl:when test="normalize-space($errors)">
-								<!-- errors detected - return base URI without query parameters, and the list of errors -->
-								<request><xsl:value-of select="$oai-pmh-base-uri"/></request>
-								<xsl:copy-of select="$errors"/>
-							</xsl:when>
-							<xsl:otherwise>
-								<!-- no errors detected - return base URI and the validated query parameters, and the result of handling the verb -->	
-							<request>
-								<xsl:for-each select="/r:request/r:parameter">
-									<xsl:attribute name="{@name}">
-										<xsl:value-of select="."/>
-									</xsl:attribute>         		
-								</xsl:for-each>		
-								<xsl:value-of select="$oai-pmh-base-uri"/>
-							</request>		
-								<!-- delegate to verb handlers here (NB they may generate <error> elements) -->
-								<xsl:apply-templates select="r:parameter[@name='verb']"/>
-						</xsl:otherwise>
-					</xsl:choose>
-				</OAI-PMH>
-			</xsl:otherwise>
-		</xsl:choose>
+		 <OAI-PMH 
+				xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+				xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd">
+			<responseDate><xsl:value-of select="$date"/></responseDate>
+			<!-- check for syntax errors in query received from harvester -->
+			<xsl:variable name="errors">
+				<xsl:apply-templates mode="validate-request" select="."/>
+			</xsl:variable>
+				<xsl:choose>
+					<xsl:when test="normalize-space($errors)">
+						<!-- errors detected - return base URI without query parameters, and the list of errors -->
+						<request><xsl:value-of select="$oai-pmh-base-uri"/></request>
+						<xsl:copy-of select="$errors"/>
+					</xsl:when>
+					<xsl:otherwise>
+						<!-- no errors detected - return base URI and the validated query parameters, and the result of handling the verb -->	
+					<request>
+						<xsl:for-each select="/r:request/r:parameter">
+							<xsl:attribute name="{@name}">
+								<xsl:value-of select="."/>
+							</xsl:attribute>         		
+						</xsl:for-each>		
+						<xsl:value-of select="$oai-pmh-base-uri"/>
+					</request>		
+						<!-- delegate to verb handlers here (NB they may generate <error> elements) -->
+						<xsl:apply-templates select="r:parameter[@name='verb']"/>
+				</xsl:otherwise>
+			</xsl:choose>
+		</OAI-PMH>
 	</xsl:template>
 	
 	<!-- detection of syntax errors -->

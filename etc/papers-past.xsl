@@ -4,14 +4,50 @@ xmlns="http://www.openarchives.org/OAI/2.0/"
 xmlns:r="http://conaltuohy.com/ns/retailer/">
 
 	<xsl:output method="xml" indent="true" media-type="application/xml"/>
+	
+	<!-- 
+		Get a configuration parameter with a particular name.
+		Either a context-parameter of the Servlet, or failing that an environment variable, or failing that, the default specified.
+	-->
+	<xsl:template name="get-config-parameter">
+		<xsl:param name="name"/>
+		<xsl:param name="default" select="''"/>
+		<xsl:variable name="context-parameter" select="/r:request/r:context-parameter[@name=$name]"/>
+		<xsl:choose>
+			<xsl:when test="$context-parameter">
+				<xsl:value-of select="$context-parameter"/>
+			</xsl:when>
+			<xsl:otherwise>
+				<xsl:variable name="environment-variable" select="/r:request/r:environment-variable[@name=$name]"/>
+				<xsl:choose>
+					<xsl:when test="$environment-variable">
+						<xsl:value-of select="$environment-variable"/>
+					</xsl:when>
+					<xsl:otherwise>
+						<xsl:value-of select="$default"/>
+					</xsl:otherwise>
+				</xsl:choose>
+			</xsl:otherwise>
+		</xsl:choose>
+	</xsl:template>
 
 	<xsl:key name="parameter" match="/r:request/r:parameter" use="@name"/>
 	<xsl:key name="header" match="/r:request/r:header" use="@name"/>
 	<xsl:key name="value" match="/r:request/r:value" use="@name"/>
+	<xsl:variable name="max-pages">
+		<xsl:call-template name="get-config-parameter">
+			<xsl:with-param name="name">max-pages</xsl:with-param>
+		</xsl:call-template>
+	</xsl:variable>
 	<xsl:variable name="key" select="
 		(/r:request/r:context-parameter | /r:request/r:environment-variable)[@name='digitalnz-key'][1]
 	"/>
-	<xsl:variable name="page-size">100</xsl:variable><!-- Digital NZ's maximum page size=100 -->
+	<xsl:variable name="page-size">
+		<xsl:call-template name="get-config-parameter">
+			<xsl:with-param name="name">page-size</xsl:with-param>
+			<xsl:with-param name="default">100</xsl:with-param><!-- Digital NZ's maximum page size=100 -->
+		</xsl:call-template>
+	</xsl:variable>
 	<xsl:variable name="base-uri" select="concat(
 		'http://api.digitalnz.org/v3/records.xml',
 		'?and[content_partner]=National+Library+of+New+Zealand',
@@ -80,9 +116,12 @@ xmlns:r="http://conaltuohy.com/ns/retailer/">
 		<xsl:variable name="page" select="number(page)"/>
 		<xsl:if test="$complete-list-size &gt; $page-size">
 			<!-- the number of results is greater than will fit in a page, so a resumptionToken is called for -->
-			<resumptionToken completeListSize="{$complete-list-size}" cursor="{$page-size* ($page - 1)}"><xsl:if test="$complete-list-size &gt; $page-size * $page">
-				<!-- The pages so far have not exhausted the full list -->
-				<xsl:value-of select="concat($metadataPrefix, '-', $page + 1, '-', $search-query)"/>
+			<!-- don't generate a resumptionToken if that would exceed the configured maximum -->
+			<resumptionToken completeListSize="{$complete-list-size}" cursor="{$page-size* ($page - 1)}"><xsl:if test="($max-pages = '') or ($page &lt; $max-pages)">
+				<xsl:if test="$complete-list-size &gt; $page-size * $page">
+					<!-- The pages so far have not exhausted the full list -->
+					<xsl:value-of select="concat($metadataPrefix, '-', $page + 1, '-', $search-query)"/>
+				</xsl:if>
 			</xsl:if></resumptionToken>
 		</xsl:if>
 	</xsl:template>
