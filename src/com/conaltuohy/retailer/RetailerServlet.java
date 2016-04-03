@@ -90,16 +90,14 @@ public class RetailerServlet extends HttpServlet {
 		
 		// load and compile an XSLT Transform
 		// The XSLT to use is specified by an initialization parameter
-		String xslt = getServletContext().getInitParameter("xslt");
-		if (xslt == null) {
-			// ... or failing that by an environment variable
-			xslt = System.getenv("retailer-xslt");
-		};
-		// or failing that it is "identity.xsl"
-		if (xslt == null) {
-			xslt = "identity.xsl";
-		};
-		xslt = "/WEB-INF/" + xslt;
+		String xslt = "/WEB-INF/" + getConfigurationParameter("xslt", "identity.xsl");
+		// read the throttle delay parameter - used to control the overall throughput of Retailer by ensuring each
+		// request takes at least some minimum time. This can be necessary if one or more of the back end services
+		// which the XSLT invokes have some kind of usage cap.
+		long currentTime = System.currentTimeMillis();
+		long delay = Long.parseLong(getConfigurationParameter("delay", "0"));
+		long endTime =  currentTime + delay;
+		
 		InputStream is = getServletContext().getResourceAsStream(xslt);
 		InputSource inputSource = new InputSource(is);
 		Source transformSource = new SAXSource(inputSource);
@@ -183,13 +181,23 @@ public class RetailerServlet extends HttpServlet {
 			// sending the response to the HTTP client
 			DOMSource domSource = new DOMSource(requestXML);
 			transformer.transform(domSource, result);
+			
+			long sleepTime = endTime - System.currentTimeMillis() ;
+			if (sleepTime > 0) {
+				try {
+					Thread.sleep(sleepTime);
+				}  catch (InterruptedException ie) {
+					Thread.currentThread().interrupt();
+				}
+			}
+			
 			resp.setStatus(HttpServletResponse.SC_OK);
 		} catch (TransformerException xsltFailed) {
 			// This runtime error would typically result from a failed HTTP request made by an 
 			// XPath "document()" call.
 			// To attempt to recover, Retailer modifies the XSLT's input XML document to include
 			// a notification that a failure has occurred, and then re-runs the XSLT. The XSLT may
-			// then decide to run in some kind of "safe mode" or produce an appropriate error 
+			// then decide to either run in some kind of "safe mode" or produce an appropriate error 
 			// notification message.
 			try {
 				getServletContext().log("Transform failed - retrying", xsltFailed);
@@ -205,8 +213,7 @@ public class RetailerServlet extends HttpServlet {
 			} catch (TransformerException retryFailed) {
 				// The second try has also failed; return the error to the client
 				getServletContext().log("Retry failed", retryFailed);
-				resp.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
-				resp.setHeader("Retry-After",  "60");
+				resp.setStatus(502 /* bad gateway */);
 			}
 
 		}
@@ -232,5 +239,18 @@ public class RetailerServlet extends HttpServlet {
 	    df.setTimeZone(tz);
 	    return df.format(new Date());
 	}
+	
+	private String getConfigurationParameter(String parameterName, String defaultValue) {
+		String value = getServletContext().getInitParameter(parameterName);
+		if (value == null) {
+			// ... or failing that by an environment variable
+			value = System.getenv("retailer-" + parameterName);
+			// or failing that it is the specified detault
+			if (value == null) {
+				value = defaultValue;
+			};
+		};
+		return value;
+	}		
 		
 }
