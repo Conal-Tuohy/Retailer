@@ -28,6 +28,7 @@ xmlns:r="http://conaltuohy.com/ns/retailer/">
 			<xsl:with-param name="name">max-pages</xsl:with-param>
 		</xsl:call-template>
 	</xsl:variable>
+	<xsl:variable name="previous-error" select="/r:request/r:value[@name='previous-error']"/>
 	
 	<!-- 
 		Get a configuration parameter with a particular name.
@@ -479,6 +480,41 @@ xmlns:r="http://conaltuohy.com/ns/retailer/">
 				* EITHER a resumptionToken
 				* OR a metadataPrefix, plus optional "set", "from" and "until" -->
 			<xsl:choose>
+				<xsl:when test="$previous-error">
+					<!-- 
+					The previous invocation of this request failed, presumably due to an upstream error.
+					This invocation is a repeat of the previous, but it must run in "safe mode"; i..e. it must 
+					not fail or it will likely cause the downstream harvester to abort the harvest. Instead, 
+					it must return a NOOP response to the harvester, which will cause it in turn to issue 
+					the same request, which Retailer will pass to this stylesheet for processing in normal 
+					mode. This will cause the harvester to retry any error response from the Trove API 
+					again and again until it returns a successsful response.
+					-->
+					<xsl:choose>
+						<xsl:when test="$verb = 'ListRecords'">
+							<ListRecords>
+								<record>
+									<header status="deleted">
+										<identifier><xsl:value-of select="concat($base-uri, '/#ignore-me')"/></identifier>
+										<datestamp>2000-01-01T00:00:00Z</datestamp>
+									</header>
+								</record>
+								<resumptionToken><xsl:value-of select="$parameters[@name='resumptionToken']"/></resumptionToken>
+							</ListRecords>
+						</xsl:when>
+						<xsl:when test="$verb = 'ListIdentifiers'">
+							<ListIdentifiers>
+								<record>
+									<header status="deleted">
+										<identifier><xsl:value-of select="concat($base-uri, '/#ignore-me')"/></identifier>
+										<datestamp>2000-01-01T00:00:00Z</datestamp>
+									</header>
+								</record>
+								<resumptionToken><xsl:value-of select="$parameters[@name='resumptionToken']"/></resumptionToken>
+							</ListIdentifiers>
+						</xsl:when>
+					</xsl:choose>
+				</xsl:when>
 				<xsl:when test="$parameters[@name='resumptionToken']">
 				<!-- 
 					<xsl:variable name="encoded-resumption-token">
